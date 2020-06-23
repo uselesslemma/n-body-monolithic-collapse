@@ -1,0 +1,102 @@
+
+
+You may be saying to yourself "Hey I took geometry. I know my vectors.
+Parallelization is easy!". Oh my sweet summer child. Parallelizing your 
+N-body code will fuck you up and haunt your dreams. Case and point-I have 
+more experience than the average bear parallelizing code, and I fucked up 
+making simple examples for you like a dozen times. You really need to 
+check what you are doing. Fortunately the parallelization you will have
+to do is straightforward as things go, but this is a long and important read.
+
+
+
+So, what is parallelization? Well, basically it is utilizing multiple
+cores to run a process, cutting down execution time. Sometimes, you 
+will hear the term multi-threading thrown around. There is a technical
+difference, but I don't know enough to explain it well. In fact, most of
+my explanations on parallel programming are gross simplifications, but I'll
+do my best to be accurate an simple. 
+
+
+
+The times you want to use it is when you are running, say, a series of calculations 
+that are all independent of eachother. So, things like particle-particle 
+interactions are good to have in a parallel region. Things like tracking 
+particle positions over time is bad...position is dependent on the previous 
+position!
+
+
+
+One important thing is that in a parallel region you have multiple threads 
+running at once, which is a process running on a computer core. If you use 
+OpenMP to parallelize your code, you will see threads everywhere. You should
+always, ALWAYS, specify the number of threads you are using, ie the number
+of CPU cores you are using. If this is unbounded, your code will use all the
+cores, and slow down EVERYONES process on the computer. Even if nobody is using
+the computer when you are, don't use all of them, as someone may log on just 
+after you and their job will run slow. 
+
+
+
+The real catch when parallel programming is tracking which variables you want
+shared or private. Shared variables are ones who can be modified by threads,
+and the change is visible in all threads. Example: 
+
+x is shared, x = 3 
+Thread_1 sets x = 5
+Thread_2 access x after Thread_1 modifies it, so x = 5 in Thread_2
+Thread_2 sets x = 1
+Thread_1 access x after Thread_2 modifies it, so x = 1 in Thread_1
+
+You get the picture. If not, google it. The other possibly accessibility is
+to set a variable to private, which means each thread gets it's own copy of
+a variable. This prevents modifications on one thread from changing the other.
+Example:
+
+x is private, x = 3 
+Thread_1 sets x = 5
+Thread_2 access x after Thread_1 modifies it, but x is private, so x = 3 in Thread_2
+Thread_2 sets x = 1
+Thread_1 access x after Thread_2 modifies it, but x is private, so x = 5 in Thread_1
+
+Setting variables to private is nice. Any variable made in a loop in a parallel
+region is inherently private. 
+
+
+
+
+Finally, usually it's a bad idea to print to files in parallel regions. Why? Well, 
+since each threads acts independently, they will all attempt to write at the same time.
+Picture three stooges walking into a door at the same time, and getting stuck. But, 
+instead of getting stuck, they morph into one superstooge. If you were to write their
+names to a file in a parallel region, it would look something like:
+
+LaCMrurolreeyy
+
+Sometimes functions (like printf) will have a lock that prevents multiple things from
+being printed simultaneously, but not all functions do. Just something to be wary of.
+
+
+
+
+N-body is coming, we know what's coming with it. We can learn to live with hydrodynamics, 
+or we can add it to the stuff we don't understand.
+
+
+
+
+To compile:    
+
+   gcc -c -std=c99 random_functions.c
+   gcc -c -std=c99 -fopenmp c_parallel.c
+   gcc -fopenmp random_functions.o c_parallel.o -o no_intersection
+
+
+-std=c99  is optional, but at least my compiler requires it for the for loops as I use them 
+
+-o <filename> gives the output file name, execute with ./<filename>
+
+-c means only compile. It will output .o files as the compiled program
+
+-fopenmp  is required during both compilation of files using OMP, and linking of files
+
